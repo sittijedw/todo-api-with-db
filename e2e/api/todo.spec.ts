@@ -20,10 +20,10 @@ test.describe('Get todos', () => {
         }
       }
     )
-    const reps = await request.get('http://localhost:8910/api/v1/todos')
+    const resp = await request.get('http://localhost:8910/api/v1/todos')
 
-    expect(reps.ok()).toBeTruthy()
-    expect(await reps.json()).toEqual(
+    expect(resp.ok()).toBeTruthy()
+    expect(await resp.json()).toEqual(
       expect.arrayContaining([
         {
           id: expect.any(Number),
@@ -39,13 +39,13 @@ test.describe('Get todos', () => {
       )
     )
 
-    const postResponseJson1 = await postResponse1.json()
-    const postResponseJson2 = await postResponse2.json()
-    const postResponseID1 = postResponseJson1['id']
-    const postResponseID2 = postResponseJson2['id']
+    const newTodo1 = await postResponse1.json()
+    const newTodo2 = await postResponse2.json()
+    const newTodoID1 = newTodo1['id']
+    const newTodoID2 = newTodo2['id']
 
-    await request.delete('http://localhost:8910/api/v1/todos/' + String(postResponseID1))
-    await request.delete('http://localhost:8910/api/v1/todos/' + String(postResponseID2))
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID1))
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID2))
   })
 })
 
@@ -62,13 +62,13 @@ test.describe('Get todo by ID', () => {
         }
       }
     )
-    const postResponseJson = await postResponse.json()
-    const postResponseID = postResponseJson['id']
+    const newTodo = await postResponse.json()
+    const newTodoID = newTodo['id']
 
-    const reps = await request.get('http://localhost:8910/api/v1/todos/' + String(postResponseID))
+    const resp = await request.get('http://localhost:8910/api/v1/todos/' + String(newTodoID))
 
-    expect(reps.ok()).toBeTruthy()
-    expect(await reps.json()).toEqual(
+    expect(resp.ok()).toBeTruthy()
+    expect(await resp.json()).toEqual(
       expect.objectContaining({
         id: expect.any(Number),
         title: 'Learn Go',
@@ -76,6 +76,34 @@ test.describe('Get todo by ID', () => {
       })
     )
 
-    await request.delete('http://localhost:8910/api/v1/todos/' + String(postResponseID))
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
+  })
+})
+
+test.describe('Post new todo', () => {
+  test('should response new todo when request /api/v1/todos', async ({
+    request,
+  }) => {
+    const resp = await request.post('http://localhost:8910/api/v1/todos',
+      {
+        data: {
+          title: 'Learn Go',
+          status: 'active'
+        }
+      }
+    )
+    const newTodo = await resp.json()
+    const newTodoID = newTodo['id']
+
+    expect(resp.ok()).toBeTruthy()
+    expect(newTodo).toEqual(
+      expect.objectContaining({
+        id: expect.any(Number),
+        title: 'Learn Go',
+        status: 'active'
+      })
+    )
+
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
   })
 })
