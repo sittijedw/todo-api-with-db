@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Get todos', () => {
-  test('should response all todos when request GET /api/v1/todos', async ({
+  test('should response HTTP status success and get all todos when request GET /api/v1/todos', async ({
     request,
   }) => {
     const postResponse1 = await request.post('http://localhost:8910/api/v1/todos',
@@ -51,7 +51,7 @@ test.describe('Get todos', () => {
 
 
 test.describe('Get todo by ID', () => {
-  test('should response todo when request GET /api/v1/todos/:id', async ({
+  test('should response HTTP status success and get todo when request GET /api/v1/todos/:id', async ({
     request,
   }) => {
     const postResponse = await request.post('http://localhost:8910/api/v1/todos',
@@ -81,7 +81,7 @@ test.describe('Get todo by ID', () => {
 })
 
 test.describe('Post new todo', () => {
-  test('should response new todo when request POST /api/v1/todos', async ({
+  test('should response HTTP status success and get new todo when request POST /api/v1/todos', async ({
     request,
   }) => {
     const getRespBefore = await request.get('http://localhost:8910/api/v1/todos')
@@ -130,7 +130,7 @@ test.describe('Post new todo', () => {
 })
 
 test.describe('Delete todo by id', () => {
-  test('should response Success message when request DELETE /api/v1/todos/:id', async ({
+  test('should response HTTP status success and get Success message when request DELETE /api/v1/todos/:id', async ({
     request,
   }) => {
     const postResponse = await request.post('http://localhost:8910/api/v1/todos',
@@ -170,5 +170,123 @@ test.describe('Delete todo by id', () => {
     expect(await getRespAfter.json()).toEqual(
       expect.arrayContaining([])
     )
+  })
+})
+
+test.describe('Put todo by id', () => {
+  test('should response HTTP status success and Update title to Workout and status to inactive when request PUT /api/v1/todos/:id', async ({
+    request,
+  }) => {
+    const postResponse = await request.post('http://localhost:8910/api/v1/todos',
+      {
+        data: {
+          title: 'Learn Go',
+          status: 'active'
+        }
+      }
+    )
+
+    const newTodo = await postResponse.json()
+    const newTodoID = newTodo['id']
+
+    const getRespBefore = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespBefore.ok()).toBeTruthy()
+    expect(await getRespBefore.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Learn Go',
+          status: 'active'
+        }
+      ])
+    )
+
+    const resp = await request.put('http://localhost:8910/api/v1/todos/' + String(newTodoID),
+      {
+        data: {
+          title: 'Workout',
+          status: 'inactive'
+        }
+      }
+    )
+    expect(resp.ok()).toBeTruthy()
+    expect(await resp.json()).toEqual(
+      expect.objectContaining({
+        id: expect.any(Number),
+        title: 'Workout',
+        status: 'inactive'
+      })
+    )
+
+    const getRespAfter = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespAfter.ok()).toBeTruthy()
+    expect(await getRespAfter.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Workout',
+          status: 'inactive'
+        }
+      ])
+    )
+
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
+  })
+})
+
+test.describe('Patch todo title by id', () => {
+  test('should response HTTP status success and Update title to Cleaning when request PATCH /api/v1/todos/:id/actions/title', async ({
+    request,
+  }) => {
+    const postResponse = await request.post('http://localhost:8910/api/v1/todos',
+      {
+        data: {
+          title: 'Learn Go',
+          status: 'active'
+        }
+      }
+    )
+
+    const newTodo = await postResponse.json()
+    const newTodoID = newTodo['id']
+
+    const getRespBefore = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespBefore.ok()).toBeTruthy()
+    expect(await getRespBefore.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Learn Go',
+          status: 'active'
+        }
+      ])
+    )
+
+    const resp = await request.patch('http://localhost:8910/api/v1/todos/' + String(newTodoID) + '/actions/title',
+      {
+        data: {
+          title: 'Cleaning',
+        }
+      }
+    )
+    expect(resp.ok()).toBeTruthy()
+
+    const getRespAfter = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespAfter.ok()).toBeTruthy()
+    expect(await getRespAfter.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Cleaning',
+          status: 'active'
+        }
+      ])
+    )
+
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
   })
 })
