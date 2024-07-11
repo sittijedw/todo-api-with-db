@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test.describe('Get todos', () => {
-  test('should response all todos when request /api/v1/todos', async ({
+  test('should response all todos when request GET /api/v1/todos', async ({
     request,
   }) => {
     const postResponse1 = await request.post('http://localhost:8910/api/v1/todos',
@@ -51,7 +51,7 @@ test.describe('Get todos', () => {
 
 
 test.describe('Get todo by ID', () => {
-  test('should response todo when request /api/v1/todos/:id', async ({
+  test('should response todo when request GET /api/v1/todos/:id', async ({
     request,
   }) => {
     const postResponse = await request.post('http://localhost:8910/api/v1/todos',
@@ -81,7 +81,7 @@ test.describe('Get todo by ID', () => {
 })
 
 test.describe('Post new todo', () => {
-  test('should response new todo when request /api/v1/todos', async ({
+  test('should response new todo when request POST /api/v1/todos', async ({
     request,
   }) => {
     const getRespBefore = await request.get('http://localhost:8910/api/v1/todos')
@@ -126,5 +126,49 @@ test.describe('Post new todo', () => {
     )
 
     await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
+  })
+})
+
+test.describe('Delete todo by id', () => {
+  test('should response Success message when request DELETE /api/v1/todos/:id', async ({
+    request,
+  }) => {
+    const postResponse = await request.post('http://localhost:8910/api/v1/todos',
+      {
+        data: {
+          title: 'Learn Go',
+          status: 'active'
+        }
+      }
+    )
+
+    const newTodo = await postResponse.json()
+    const newTodoID = newTodo['id']
+
+    const getRespBefore = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespBefore.ok()).toBeTruthy()
+    expect(await getRespBefore.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Learn Go',
+          status: 'active'
+        }
+      ])
+    )
+
+    const resp = await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
+    expect(resp.ok()).toBeTruthy()
+    expect(await resp.json()).toEqual(
+      expect.stringContaining("Success")
+    )
+
+    const getRespAfter = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespAfter.ok()).toBeTruthy()
+    expect(await getRespAfter.json()).toEqual(
+      expect.arrayContaining([])
+    )
   })
 })
