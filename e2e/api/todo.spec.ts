@@ -84,6 +84,13 @@ test.describe('Post new todo', () => {
   test('should response new todo when request /api/v1/todos', async ({
     request,
   }) => {
+    const getRespBefore = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespBefore.ok()).toBeTruthy()
+    expect(await getRespBefore.json()).toEqual(
+      expect.arrayContaining([])
+    )
+
     const resp = await request.post('http://localhost:8910/api/v1/todos',
       {
         data: {
@@ -92,6 +99,7 @@ test.describe('Post new todo', () => {
         }
       }
     )
+
     const newTodo = await resp.json()
     const newTodoID = newTodo['id']
 
@@ -102,6 +110,19 @@ test.describe('Post new todo', () => {
         title: 'Learn Go',
         status: 'active'
       })
+    )
+
+    const getRespAfter = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespAfter.ok()).toBeTruthy()
+    expect(await getRespAfter.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Learn Go',
+          status: 'active'
+        }
+      ])
     )
 
     await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
