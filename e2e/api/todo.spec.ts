@@ -48,3 +48,34 @@ test.describe('Get todos', () => {
     await request.delete('http://localhost:8910/api/v1/todos/' + String(postResponseID2))
   })
 })
+
+
+test.describe('Get todo by ID', () => {
+  test('should response todo when request /api/v1/todos/:id', async ({
+    request,
+  }) => {
+    const postResponse = await request.post('http://localhost:8910/api/v1/todos',
+      {
+        data: {
+          title: 'Learn Go',
+          status: 'active'
+        }
+      }
+    )
+    const postResponseJson = await postResponse.json()
+    const postResponseID = postResponseJson['id']
+
+    const reps = await request.get('http://localhost:8910/api/v1/todos/' + String(postResponseID))
+
+    expect(reps.ok()).toBeTruthy()
+    expect(await reps.json()).toEqual(
+      expect.objectContaining({
+        id: expect.any(Number),
+        title: 'Learn Go',
+        status: 'active'
+      })
+    )
+
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(postResponseID))
+  })
+})
