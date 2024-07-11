@@ -290,3 +290,58 @@ test.describe('Patch todo title by id', () => {
     await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
   })
 })
+
+test.describe('Patch todo status by id', () => {
+  test('should response HTTP status success and Update status to inactive when request PATCH /api/v1/todos/:id/actions/status', async ({
+    request,
+  }) => {
+    const postResponse = await request.post('http://localhost:8910/api/v1/todos',
+      {
+        data: {
+          title: 'Learn Go',
+          status: 'active'
+        }
+      }
+    )
+
+    const newTodo = await postResponse.json()
+    const newTodoID = newTodo['id']
+
+    const getRespBefore = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespBefore.ok()).toBeTruthy()
+    expect(await getRespBefore.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Learn Go',
+          status: 'active'
+        }
+      ])
+    )
+
+    const resp = await request.patch('http://localhost:8910/api/v1/todos/' + String(newTodoID) + '/actions/status',
+      {
+        data: {
+          status: 'inactive',
+        }
+      }
+    )
+    expect(resp.ok()).toBeTruthy()
+
+    const getRespAfter = await request.get('http://localhost:8910/api/v1/todos')
+
+    expect(getRespAfter.ok()).toBeTruthy()
+    expect(await getRespAfter.json()).toEqual(
+      expect.arrayContaining([
+        {
+          id: expect.any(Number),
+          title: 'Learn Go',
+          status: 'inactive'
+        }
+      ])
+    )
+
+    await request.delete('http://localhost:8910/api/v1/todos/' + String(newTodoID))
+  })
+})
