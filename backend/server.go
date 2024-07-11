@@ -37,6 +37,7 @@ func main() {
 	r.POST("/api/v1/todos", postTodoHandler)
 	r.PUT("/api/v1/todos/:id", putTodoByIDHandler)
 	r.DELETE("/api/v1/todos/:id", deleteTodoByIDHandler)
+	r.PATCH("/api/v1/todos/:id/actions/title", patchTodoTitleByIDHandler)
 
 	srv := http.Server{
 		Addr:    ":" + os.Getenv("PORT"),
@@ -161,6 +162,31 @@ func putTodoByIDHandler(ctx *gin.Context) {
 
 	log.Println("Update todo success")
 	ctx.JSON(http.StatusOK, todo)
+}
+
+func patchTodoTitleByIDHandler(ctx *gin.Context) {
+	var todo Todo
+
+	err := ctx.BindJSON(&todo)
+
+	if err != nil {
+		ctx.Error(err)
+	}
+
+	todo.ID, err = strconv.Atoi(ctx.Param("id"))
+
+	if err != nil {
+		log.Println("Can't convert string to int", err)
+	}
+
+	_, err = DB.Exec("UPDATE todos SET title=$1 WHERE id=$2", todo.Title, todo.ID)
+
+	if err != nil {
+		log.Println("Can't update todo", err)
+	}
+
+	log.Println("Update todo success")
+	ctx.Status(http.StatusOK)
 }
 
 func deleteTodoByIDHandler(ctx *gin.Context) {
