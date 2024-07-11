@@ -16,9 +16,9 @@ import (
 )
 
 type Todo struct {
-	ID     int            `json:"id"`
-	Title  sql.NullString `json:"title"`
-	Status sql.NullString `json:"status"`
+	ID     int    `json:"id"`
+	Title  string `json:"title"`
+	Status string `json:"status"`
 }
 
 var DB *sql.DB
@@ -33,6 +33,7 @@ func main() {
 	r := gin.Default()
 	r.GET("/api/v1/todos", getTodosHandler)
 	r.GET("/api/v1/todos/:id", getTodoByIDHandler)
+	r.POST("/api/v1/todos", postTodoHandler)
 
 	srv := http.Server{
 		Addr:    ":" + os.Getenv("PORT"),
@@ -108,5 +109,30 @@ func getTodoByIDHandler(ctx *gin.Context) {
 		log.Fatal("Can't scan row into todo struct", err)
 	}
 
+	ctx.JSON(http.StatusOK, todo)
+}
+
+func postTodoHandler(ctx *gin.Context) {
+	var todo Todo
+
+	if err := ctx.BindJSON(&todo); err != nil {
+		ctx.Error(err)
+	}
+
+	log.Println(todo)
+
+	row := DB.QueryRow("INSERT INTO todos (title, status) values ($1, $2) RETURNING id", todo.Title, todo.Status)
+
+	var id int
+	err := row.Scan(&id)
+
+	if err != nil {
+		log.Println("Can't scan id", err)
+		return
+	}
+
+	todo.ID = id
+
+	log.Println("Insert todo success")
 	ctx.JSON(http.StatusOK, todo)
 }
