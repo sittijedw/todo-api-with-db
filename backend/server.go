@@ -36,6 +36,7 @@ func main() {
 	r.GET("/api/v1/todos/:id", getTodoByIDHandler)
 	r.POST("/api/v1/todos", postTodoHandler)
 	r.PUT("/api/v1/todos/:id", putTodoByIDHandler)
+	r.DELETE("/api/v1/todos/:id", deleteTodoByIDHandler)
 
 	srv := http.Server{
 		Addr:    ":" + os.Getenv("PORT"),
@@ -71,7 +72,7 @@ func connectDB() *sql.DB {
 	db, err := sql.Open("postgres", url)
 
 	if err != nil {
-		log.Fatal("Connect to database error", err)
+		log.Println("Connect to database error", err)
 	}
 
 	return db
@@ -81,7 +82,7 @@ func getTodosHandler(ctx *gin.Context) {
 	rows, err := DB.Query("SELECT id, title, status FROM todos")
 
 	if err != nil {
-		log.Fatal("Can't query all todos", err)
+		log.Println("Can't query all todos", err)
 	}
 
 	var todos []Todo
@@ -90,7 +91,7 @@ func getTodosHandler(ctx *gin.Context) {
 
 		err := rows.Scan(&todo.ID, &todo.Title, &todo.Status)
 		if err != nil {
-			log.Fatal("Can't scan row into todo struct", err)
+			log.Println("Can't scan row into todo struct", err)
 		}
 
 		todos = append(todos, todo)
@@ -108,7 +109,7 @@ func getTodoByIDHandler(ctx *gin.Context) {
 	err := row.Scan(&todo.ID, &todo.Title, &todo.Status)
 
 	if err != nil {
-		log.Fatal("Can't scan row into todo struct", err)
+		log.Println("Can't scan row into todo struct", err)
 	}
 
 	ctx.JSON(http.StatusOK, todo)
@@ -149,7 +150,7 @@ func putTodoByIDHandler(ctx *gin.Context) {
 	todo.ID, err = strconv.Atoi(ctx.Param("id"))
 
 	if err != nil {
-		log.Println("Can't update todo", err)
+		log.Println("Can't convert string to int", err)
 	}
 
 	_, err = DB.Exec("UPDATE todos SET title=$1, status=$2 WHERE id=$3", todo.Title, todo.Status, todo.ID)
@@ -160,4 +161,17 @@ func putTodoByIDHandler(ctx *gin.Context) {
 
 	log.Println("Update todo success")
 	ctx.JSON(http.StatusOK, todo)
+}
+
+func deleteTodoByIDHandler(ctx *gin.Context) {
+	paramID := ctx.Param("id")
+
+	_, err := DB.Exec("DELETE FROM todos WHERE id=$1", paramID)
+
+	if err != nil {
+		log.Println("Can't delete todo", err)
+	}
+
+	log.Println("Delete todo success")
+	ctx.JSON(http.StatusOK, "Success")
 }
