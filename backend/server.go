@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,14 +12,21 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/lib/pq"
 )
+
+type Todo struct {
+	ID     int            `json:"id"`
+	Title  sql.NullString `json:"title"`
+	Status sql.NullString `json:"status"`
+}
 
 func main() {
 	ctx, cancle := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancle()
 
 	r := gin.Default()
-	r.GET("/hello", helloHandler)
+	r.GET("/api/v1/todos", getTodosHandler)
 
 	srv := http.Server{
 		Addr:    ":" + os.Getenv("PORT"),
@@ -30,7 +37,7 @@ func main() {
 
 	go func() {
 		<-ctx.Done()
-		fmt.Println("shutting down...")
+		log.Println("shutting down...")
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -50,8 +57,39 @@ func main() {
 	<-closedChan
 }
 
-func helloHandler(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"message": "Hello, World",
-	})
+func connectDB() *sql.DB {
+	url := os.Getenv("DATABASE_URL")
+	db, err := sql.Open("postgres", url)
+
+	if err != nil {
+		log.Fatal("Connect to database error", err)
+	}
+
+	return db
+}
+
+func getTodosHandler(ctx *gin.Context) {
+	db := connectDB()
+	defer db.Close()
+
+	rows, err := db.Query("SELECT id, title, status FROM todos")
+
+	if err != nil {
+		log.Fatal("can't query all todos", err)
+	}
+
+	var todos []Todo
+	for rows.Next() {
+		var todo Todo
+
+		err := rows.Scan(&todo.ID, &todo.Title, &todo.Status)
+		if err != nil {
+			log.Fatal("Can't scan row into todo struct", err)
+		}
+
+		todos = append(todos, todo)
+	}
+
+	ctx.JSON(http.StatusOK, todos)
+	log.Println("Get all todos success!!!")
 }
