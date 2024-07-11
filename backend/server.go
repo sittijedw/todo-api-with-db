@@ -21,12 +21,18 @@ type Todo struct {
 	Status sql.NullString `json:"status"`
 }
 
+var DB *sql.DB
+
 func main() {
 	ctx, cancle := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancle()
 
+	DB = connectDB()
+	defer DB.Close()
+
 	r := gin.Default()
 	r.GET("/api/v1/todos", getTodosHandler)
+	r.GET("/api/v1/todos/:id", getTodoByIDHandler)
 
 	srv := http.Server{
 		Addr:    ":" + os.Getenv("PORT"),
@@ -69,13 +75,10 @@ func connectDB() *sql.DB {
 }
 
 func getTodosHandler(ctx *gin.Context) {
-	db := connectDB()
-	defer db.Close()
-
-	rows, err := db.Query("SELECT id, title, status FROM todos")
+	rows, err := DB.Query("SELECT id, title, status FROM todos")
 
 	if err != nil {
-		log.Fatal("can't query all todos", err)
+		log.Fatal("Can't query all todos", err)
 	}
 
 	var todos []Todo
@@ -92,4 +95,18 @@ func getTodosHandler(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, todos)
 	log.Println("Get all todos success!!!")
+}
+
+func getTodoByIDHandler(ctx *gin.Context) {
+	paramID := ctx.Param("id")
+	row := DB.QueryRow("SELECT id, title, status FROM todos where id=$1", paramID)
+
+	var todo Todo
+	err := row.Scan(&todo.ID, &todo.Title, &todo.Status)
+
+	if err != nil {
+		log.Fatal("Can't scan row into todo struct", err)
+	}
+
+	ctx.JSON(http.StatusOK, todo)
 }
