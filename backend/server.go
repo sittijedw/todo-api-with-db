@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -34,6 +35,7 @@ func main() {
 	r.GET("/api/v1/todos", getTodosHandler)
 	r.GET("/api/v1/todos/:id", getTodoByIDHandler)
 	r.POST("/api/v1/todos", postTodoHandler)
+	r.PUT("/api/v1/todos/:id", putTodoByIDHandler)
 
 	srv := http.Server{
 		Addr:    ":" + os.Getenv("PORT"),
@@ -100,7 +102,7 @@ func getTodosHandler(ctx *gin.Context) {
 
 func getTodoByIDHandler(ctx *gin.Context) {
 	paramID := ctx.Param("id")
-	row := DB.QueryRow("SELECT id, title, status FROM todos where id=$1", paramID)
+	row := DB.QueryRow("SELECT id, title, status FROM todos WHERE id=$1", paramID)
 
 	var todo Todo
 	err := row.Scan(&todo.ID, &todo.Title, &todo.Status)
@@ -119,9 +121,7 @@ func postTodoHandler(ctx *gin.Context) {
 		ctx.Error(err)
 	}
 
-	log.Println(todo)
-
-	row := DB.QueryRow("INSERT INTO todos (title, status) values ($1, $2) RETURNING id", todo.Title, todo.Status)
+	row := DB.QueryRow("INSERT INTO todos (title, status) VALUES ($1, $2) RETURNING id", todo.Title, todo.Status)
 
 	var id int
 	err := row.Scan(&id)
@@ -134,5 +134,30 @@ func postTodoHandler(ctx *gin.Context) {
 	todo.ID = id
 
 	log.Println("Insert todo success")
+	ctx.JSON(http.StatusOK, todo)
+}
+
+func putTodoByIDHandler(ctx *gin.Context) {
+	var todo Todo
+
+	err := ctx.BindJSON(&todo)
+
+	if err != nil {
+		ctx.Error(err)
+	}
+
+	todo.ID, err = strconv.Atoi(ctx.Param("id"))
+
+	if err != nil {
+		log.Println("Can't update todo", err)
+	}
+
+	_, err = DB.Exec("UPDATE todos SET title=$1, status=$2 WHERE id=$3", todo.Title, todo.Status, todo.ID)
+
+	if err != nil {
+		log.Println("Can't update todo", err)
+	}
+
+	log.Println("Update todo success")
 	ctx.JSON(http.StatusOK, todo)
 }
